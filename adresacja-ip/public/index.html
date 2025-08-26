@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Adresacji IP</title>
+    <link rel="stylesheet" href="styles.css">
+<head>
+    <meta charset="UTF-8">
+    <title>Generator Adresacji IP</title>
+    <style>
+        body { font-family: sans-serif; margin: 50px; background: #f7f7f7; }
+        .box { background: #fff; padding: 30px; border-radius: 10px; max-width: 400px; margin: auto; box-shadow: 0 2px 12px #ccc; }
+        input[type="file"] { margin-bottom: 20px; }
+        #downloadLink { margin-top: 20px; font-weight: bold; }
+        button { background: #2196f3; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;}
+        button:hover { background: #0b79d0; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>Wgraj plik CSV wsadowy</h2>
+        <form id="adresacjaForm" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".csv" required />
+            <button type="submit">Generuj adresację IP</button>
+        </form>
+        <div id="downloadLink"></div>
+        <div id="status"></div>
+        <hr>
+        <p>Po wygenerowaniu pobierz plik z adresacją IP.<br>
+        Kolejne generacje biorą pod uwagę już zajęte zakresy.</p>
+    </div>
+    <script>
+        document.getElementById('adresacjaForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('status').textContent = "Przetwarzanie...";
+            const formData = new FormData(this);
+            fetch('/generate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('Błąd generacji!');
+                }
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'adresacja.csv';
+                a.textContent = 'Pobierz wygenerowany plik';
+                document.getElementById('downloadLink').innerHTML = '';
+                document.getElementById('downloadLink').appendChild(a);
+                document.getElementById('status').textContent = "";
+            })
+            .catch(err => {
+                document.getElementById('downloadLink').textContent = '';
+                document.getElementById('status').textContent = err.message;
+            });
+        });
+    </script>
+</body>
+</html>
