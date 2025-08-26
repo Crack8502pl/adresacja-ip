@@ -1,12 +1,30 @@
+/**
+ * Funkcje pomocnicze do generatora adresacji IP
+ * Funkcje:
+ * - Parsowanie CSV i sortowanie wierszy
+ * - Parametry IP (konwersje, maski, liczby hostów)
+ * - Sprawdzanie dostępnych zakresów IP
+ * - Generowanie wierszy wyjściowych
+ * - Podsumowanie elementów do adresacji
+ */
+
 const fs = require('fs');
 const path = require('path');
-const csvParse = require('csv-parse/lib/sync');
-const csvStringify = require('csv-stringify/lib/sync');
+const { parse } = require('csv-parse/sync');
+const { stringify } = require('csv-stringify/sync');
 
-// --- IP utils ---
+// -- IP utils --
+
+/**
+ * Konwersja IP string na liczbę
+ */
 function ipToNumber(ip) {
     return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
 }
+
+/**
+ * Konwersja liczby na string IP
+ */
 function numberToIp(num) {
     return [
         (num >>> 24) & 255,
@@ -15,6 +33,10 @@ function numberToIp(num) {
         num & 255
     ].join('.');
 }
+
+/**
+ * Zamiana maski CIDR na dziesiętną
+ */
 function cidrToDecimal(cidr) {
     const mask = [];
     for (let i = 0; i < 4; i++) {
@@ -23,11 +45,19 @@ function cidrToDecimal(cidr) {
     }
     return mask.join('.');
 }
+
+/**
+ * Liczba dostępnych hostów dla danej maski
+ */
 function hostsForMask(mask) {
     return Math.pow(2, 32 - mask) - 2;
 }
 
-// --- DATA.json obsługa ---
+// -- DATA.json obsługa (wykorzystane zakresy) --
+
+/**
+ * Wczytuje listę zajętych podsieci z DATA.json
+ */
 function loadUsedRanges(dataPath) {
     try {
         const data = fs.readFileSync(dataPath, 'utf8');
@@ -36,11 +66,17 @@ function loadUsedRanges(dataPath) {
         return [];
     }
 }
+
+/**
+ * Zapisuje listę zajętych podsieci do DATA.json
+ */
 function saveUsedRanges(dataPath, ranges) {
     fs.writeFileSync(dataPath, JSON.stringify(ranges, null, 2), 'utf8');
 }
 
-// Sprawdź czy zakres jest wolny
+/**
+ * Sprawdza, czy dany zakres jest dostępny (nie pokrywa się z innym)
+ */
 function isRangeAvailable(networkNum, mask, usedRanges) {
     const maskSize = Math.pow(2, 32 - mask);
     const rangeStartNum = networkNum;
@@ -48,7 +84,6 @@ function isRangeAvailable(networkNum, mask, usedRanges) {
     for (const used of usedRanges) {
         const usedStart = ipToNumber(used.network);
         const usedEnd = usedStart + Math.pow(2, 32 - used.mask) - 1;
-        // Nakładają się?
         if (!(rangeEndNum < usedStart || rangeStartNum > usedEnd)) {
             return false;
         }
@@ -56,7 +91,9 @@ function isRangeAvailable(networkNum, mask, usedRanges) {
     return true;
 }
 
-// Znajdź najmniejszy dostępny zakres dla żądanej liczby urządzeń
+/**
+ * Znajduje wolny zakres IP spełniający wymagania liczby urządzeń
+ */
 function findAvailableRange(baseNetwork, minRequired, usedRanges) {
     let mask = findSmallestMask(minRequired);
     let candidateNetNum = ipToNumber(baseNetwork);
@@ -76,19 +113,20 @@ function findAvailableRange(baseNetwork, minRequired, usedRanges) {
     throw new Error("Brak wolnych pul adresowych!");
 }
 
-// Najmniejsza maska dla liczby hostów
+/**
+ * Wyznacza najmniejszą maskę dla podanej liczby hostów
+ */
 function findSmallestMask(hosts) {
     let bitsNeeded = Math.ceil(Math.log2(hosts + 2));
     return 32 - bitsNeeded;
 }
 
-// Sortowanie zgodnie z wymaganiami
+/**
+ * Sortuje wiersze CSV wg reguł: brak/lan/lanz/lanz1
+ */
 function sortCsvRows(csvRows) {
-    // 1. Klasa "brak" - wszystkie obiekty po kolei
     const klasaBrak = csvRows.filter(row => row.klasa === '' || row.klasa === 'brak');
-    // 2. Klasa "lan" - wszystkie obiekty po kolei
     const klasaLan = csvRows.filter(row => row.klasa === 'lan');
-    // 3. Klasa "lanz" - w ramach obiektu: najpierw WV-U1532LA, potem WV-S1536LTN, potem reszta
     const klasaLanz = csvRows.filter(row => row.klasa === 'lanz');
     const grupyLanz = {};
     klasaLanz.forEach(row => {
@@ -102,41 +140,52 @@ function sortCsvRows(csvRows) {
         const reszta = grupa.filter(row => !row.nazwa.includes('WV-U1532LA') && !row.nazwa.includes('WV-S1536LTN'));
         sortedLanz.push(...wvU1532LA, ...wvS1536LTN, ...reszta);
     });
-    // 4. Klasa "lanz1"
     const klasaLanz1 = csvRows.filter(row => row.klasa === 'lanz1');
     return [...klasaBrak, ...klasaLan, ...sortedLanz, ...klasaLanz1];
 }
 
-// Główna funkcja serwerowa
+/**
+ * Główna funkcja generująca adresację IP na podstawie CSV
+ * Zwraca:
+ * - wiersze wynikowe
+ * - parametry podsieci
+ * - nazwę sieci (XXX z wykaz_XXX_YYY)
+ */
 async function generateAdresacja(inputCsvPath, dataJsonPath, outputDir) {
-    // 1. Wczytaj CSV
     const inputCsv = fs.readFileSync(inputCsvPath, 'utf8');
-    const records = csvParse(inputCsv, { delimiter: ';', columns: true, skip_empty_lines: true });
-    // 2. Przetwórz dane
+    const records = parse(inputCsv, { delimiter: ';', columns: true, skip_empty_lines: true });
+
     const csvRows = records.map(row => ({
-        nazwaObiektu: row['Nazwa Obiektu'],
-        kategoria: row['Kategoria'],
-        nazwa: row['Nazwa'],
-        ilosc: parseInt(row['Ilość']) || 1,
-        klasa: (row['Klasa'] || '').toLowerCase()
+        nazwaObiektu: (row['Nazwa Obiektu'] || row['nazwa obiektu'] || row['Nazwa Obiekty'] || row['nazwa obiekty'] || "").replace(/^\uFEFF/, '').trim(),
+        kategoria: row['Kategoria'] || row['kategoria'] || "",
+        nazwa: row['Nazwa'] || row['nazwa'] || "",
+        ilosc: parseInt(row['Ilość']) || parseInt(row['Ilosc']) || 1,
+        klasa: (row['Klasa'] || row['klasa'] || '').toLowerCase().trim()
     }));
     const sortedRows = sortCsvRows(csvRows);
-
-    // 3. Policz urządzenia (z buforem)
     const totalDevices = sortedRows.reduce((sum, row) => sum + row.ilosc, 0);
     const devicesWithBuffer = Math.ceil(totalDevices * 1.2);
 
-    // 4. Wczytaj DATA.json
     const usedRanges = loadUsedRanges(dataJsonPath);
 
-    // 5. Znajdź wolną pulę i maskę
     const baseNetwork = '172.16.0.0';
     const rangeInfo = findAvailableRange(baseNetwork, devicesWithBuffer, usedRanges);
 
-    // 6. Zapisz pulę do DATA.json
     const rangeStart = numberToIp(ipToNumber(rangeInfo.network) + 1);
     const rangeEnd = numberToIp(ipToNumber(rangeInfo.network) + hostsForMask(rangeInfo.mask));
-    const outputFileName = `Adresacja_${path.basename(inputCsvPath).replace(/\.[^/.]+$/, "")}.csv`;
+
+    // Nazwa sieci: XXX z wykaz_XXX_YYYY.csv
+    const fileBase = path.basename(inputCsvPath).replace(/\.[^/.]+$/, "");
+    // Wyciągamy XXX ze wzorca wykaz_XXX_YYYY
+    let siecNazwa = fileBase;
+    const rgx = /^wykaz_([^_]+)_/i;
+    const match = fileBase.match(rgx);
+    if (match && match[1]) {
+        siecNazwa = match[1];
+    }
+
+    const outputFileName = `Adresacja_${fileBase}.csv`;
+
     usedRanges.push({
         network: rangeInfo.network,
         mask: rangeInfo.mask,
@@ -146,7 +195,6 @@ async function generateAdresacja(inputCsvPath, dataJsonPath, outputDir) {
     });
     saveUsedRanges(dataJsonPath, usedRanges);
 
-    // 7. Wygeneruj adresy
     let currentIP = ipToNumber(rangeStart);
     const outputRows = [];
     sortedRows.forEach(row => {
@@ -170,10 +218,38 @@ async function generateAdresacja(inputCsvPath, dataJsonPath, outputDir) {
         }
     });
 
-    // 8. Zapisz CSV
-    const outputCsv = csvStringify(outputRows, { header: true, delimiter: ';' });
+    const outputCsv = stringify(outputRows, { header: true, delimiter: ';' });
     fs.writeFileSync(path.join(outputDir, outputFileName), outputCsv, 'utf8');
-    return outputFileName;
+    return {
+        fileName: outputFileName,
+        siecNazwa,
+        rows: outputRows,
+        network: rangeInfo.network,
+        mask: rangeInfo.mask,
+        rangeStart,
+        rangeEnd
+    };
 }
 
-module.exports = { generateAdresacja };
+/**
+ * Funkcja podsumowująca wiersze CSV do adresacji
+ * Zwraca tablicę z polami + included: czy wiersz będzie adresowany
+ * Kolory w tabeli frontendowej
+ */
+function summaryForCsv(inputCsvPath) {
+    const inputCsv = fs.readFileSync(inputCsvPath, 'utf8');
+    const records = parse(inputCsv, { delimiter: ';', columns: true, skip_empty_lines: true });
+    return records.map(row => {
+        const nazwaObiektu = (row['Nazwa Obiektu'] || row['nazwa obiektu'] || row['Nazwa Obiekty'] || row['nazwa obiekty'] || "").replace(/^\uFEFF/, '').trim();
+        const klasa = (row['Klasa'] || row['klasa'] || '').toLowerCase().trim();
+        // included: tylko te które nie są "lanz1" i mają nazwę obiektu
+        const included = klasa !== 'lanz1' && nazwaObiektu !== '';
+        return {
+            ...row,
+            nazwaObiektu,
+            included,
+        };
+    });
+}
+
+module.exports = { generateAdresacja, summaryForCsv, hostsForMask, cidrToDecimal };
