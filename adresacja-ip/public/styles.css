@@ -1,3 +1,6 @@
+/* Komentarze: Style dla generatora adresacji IP */
+
+/* Reset stylów i typografia */
 * {
     margin: 0;
     padding: 0;
@@ -20,6 +23,7 @@ body {
     overflow: hidden;
 }
 
+/* Nagłówek i podtytuł */
 header {
     background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     color: white;
@@ -38,6 +42,7 @@ header p {
     opacity: 0.9;
 }
 
+/* Upload pliku */
 .upload-section {
     padding: 40px;
     text-align: center;
@@ -87,6 +92,7 @@ header p {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
+/* Sekcje i nagłówki w podsumowaniu/wyniku */
 .network-info, .input-section, .output-section {
     padding: 30px;
     border-top: 1px solid #eee;
@@ -126,11 +132,21 @@ header p {
     color: #2c3e50;
 }
 
+/* Tabele */
 .table-container {
     overflow-x: auto;
     margin-bottom: 25px;
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Scroll dla podsumowania */
+.summary-scroll {
+    max-height: 340px;
+    overflow-y: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    margin-bottom: 25px;
 }
 
 table {
@@ -158,6 +174,7 @@ tr:hover {
     background: #f8f9fa;
 }
 
+/* Przyciskowe akcje */
 .action-buttons {
     display: flex;
     gap: 15px;
@@ -217,6 +234,7 @@ tr:hover {
     transform: translateY(-2px);
 }
 
+/* Komunikaty błędów i sukcesu */
 .error-message {
     padding: 20px;
     background: #f8d7da;
@@ -237,13 +255,14 @@ tr:hover {
     font-weight: 500;
 }
 
-/* Nowe style dla priorytetów */
+/* Kolory wierszy w podsumowaniu */
 .included-row {
-    border-left: 4px solid #28a745;
+    border-left: 4px solid #28a745 !important;
+    background: #eafaf1;
 }
-
 .excluded-row {
-    border-left: 4px solid #dc3545;
+    border-left: 4px solid #dc3545 !important;
+    background: #faeaea;
 }
 
 /* Legenda priorytetów */
@@ -276,6 +295,7 @@ tr:hover {
     border: 1px solid #ddd;
 }
 
+/* Responsywność */
 @media (max-width: 768px) {
     .container {
         margin: 0;
@@ -316,8 +336,13 @@ tr:hover {
         width: 16px;
         height: 16px;
     }
+    .summary-scroll {
+        max-height: 200px;
+        margin-bottom: 15px;
+    }
 }
 
+/* Animacja ładowania */
 .loading {
     position: relative;
     pointer-events: none;

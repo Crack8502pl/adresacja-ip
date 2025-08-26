@@ -2,65 +2,198 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generator Adresacji IP</title>
+    <title>Generator adresacji IP</title>
     <link rel="stylesheet" href="styles.css">
-<head>
-    <meta charset="UTF-8">
-    <title>Generator Adresacji IP</title>
-    <style>
-        body { font-family: sans-serif; margin: 50px; background: #f7f7f7; }
-        .box { background: #fff; padding: 30px; border-radius: 10px; max-width: 400px; margin: auto; box-shadow: 0 2px 12px #ccc; }
-        input[type="file"] { margin-bottom: 20px; }
-        #downloadLink { margin-top: 20px; font-weight: bold; }
-        button { background: #2196f3; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;}
-        button:hover { background: #0b79d0; }
-    </style>
 </head>
 <body>
-    <div class="box">
-        <h2>Wgraj plik CSV wsadowy</h2>
-        <form id="adresacjaForm" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".csv" required />
-            <button type="submit">Generuj adresację IP</button>
+<div class="container">
+    <header>
+        <h1>Generator adresacji IP</h1>
+        <p>Wgraj plik CSV z urządzeniami, zobacz podsumowanie, wygeneruj adresację i pobierz plik wynikowy.</p>
+    </header>
+    <section class="upload-section">
+        <form id="csvForm" enctype="multipart/form-data">
+            <div class="upload-box" onclick="document.getElementById('csvFile').click();">
+                <label for="csvFile" class="upload-label">
+                    <span class="upload-icon">📄</span>
+                    <span class="upload-text">Wybierz plik CSV do analizy</span>
+                </label>
+                <input type="file" id="csvFile" name="file" accept=".csv" style="display:none" required>
+            </div>
+            <div class="action-buttons" style="margin-top:18px;">
+                <button class="btn-primary" type="submit">Wyświetl podsumowanie</button>
+            </div>
         </form>
-        <div id="downloadLink"></div>
-        <div id="status"></div>
-        <hr>
-        <p>Po wygenerowaniu pobierz plik z adresacją IP.<br>
-        Kolejne generacje biorą pod uwagę już zajęte zakresy.</p>
-    </div>
-    <script>
-        document.getElementById('adresacjaForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            document.getElementById('status').textContent = "Przetwarzanie...";
-            const formData = new FormData(this);
-            fetch('/generate', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.blob();
-                } else {
-                    throw new Error('Błąd generacji!');
-                }
-            })
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'adresacja.csv';
-                a.textContent = 'Pobierz wygenerowany plik';
-                document.getElementById('downloadLink').innerHTML = '';
-                document.getElementById('downloadLink').appendChild(a);
-                document.getElementById('status').textContent = "";
-            })
-            .catch(err => {
-                document.getElementById('downloadLink').textContent = '';
-                document.getElementById('status').textContent = err.message;
-            });
-        });
-    </script>
+        <div id="error" class="error-message" style="display:none;"></div>
+    </section>
+
+    <section id="summarySection" class="input-section" style="display:none;">
+        <h3>Podsumowanie elementów do adresacji</h3>
+        <div class="priority-legend">
+            <h4>Legenda:</h4>
+            <div class="priority-item">
+                <span class="priority-color" style="background:#28a745"></span> Wiersz zostanie zaadresowany
+            </div>
+            <div class="priority-item">
+                <span class="priority-color" style="background:#dc3545"></span> Wiersz nie zostanie zaadresowany
+            </div>
+        </div>
+        <div class="table-container summary-scroll">
+            <table class="summary-table" id="summaryTable"></table>
+        </div>
+        <div class="action-buttons">
+            <button class="btn-primary" id="generateBtn">Generuj adresację</button>
+            <button class="btn-clear" id="cancelBtn">Anuluj</button>
+        </div>
+    </section>
+
+    <section id="resultSection" class="output-section" style="display:none;">
+        <h3>Adresacja wygenerowana</h3>
+        <div class="network-info" id="networkInfo"></div>
+        <div class="table-container">
+            <table class="result-table" id="resultTable"></table>
+        </div>
+        <div class="action-buttons">
+            <a class="btn-secondary" id="downloadBtn" href="#" download>📥 Pobierz plik CSV</a>
+            <button class="btn-info" id="newBtn">Nowy plik</button>
+        </div>
+    </section>
+</div>
+<script>
+/* Obsługa uploadu pliku i podsumowania */
+document.getElementById('csvForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('error').innerText = '';
+    document.getElementById('summarySection').style.display = 'none';
+    document.getElementById('resultSection').style.display = 'none';
+
+    const fileInput = document.getElementById('csvFile');
+    if (!fileInput.files.length) {
+        document.getElementById('error').innerText = 'Proszę wybrać plik CSV!';
+        document.getElementById('error').style.display = '';
+        return;
+    }
+
+    const formData = new FormData(this);
+    this.classList.add('loading');
+    const res = await fetch('/summary', {
+        method: 'POST',
+        body: formData
+    });
+    this.classList.remove('loading');
+    if (!res.ok) {
+        const err = await res.json();
+        document.getElementById('error').innerText = err.error || 'Błąd podczas przetwarzania pliku.';
+        document.getElementById('error').style.display = '';
+        return;
+    }
+    const data = await res.json();
+    window.fileId = data.fileId;
+    renderSummary(data.summary);
+});
+
+/* Renderowanie podsumowania z kolorami */
+function renderSummary(rows) {
+    const table = document.getElementById('summaryTable');
+    table.innerHTML = `<tr>
+        <th>Nazwa Obiektu</th>
+        <th>Kategoria</th>
+        <th>Nazwa</th>
+        <th>Ilość</th>
+        <th>Klasa</th>
+    </tr>`;
+    rows.forEach(row => {
+        // Kolorowanie: zielone jeśli included, czerwone jeśli nie
+        const rowClass = row.included ? "included-row" : "excluded-row";
+        table.innerHTML += `<tr class="${rowClass}">
+            <td>${row.nazwaObiektu}</td>
+            <td>${row.Kategoria || row.kategoria || ""}</td>
+            <td>${row.Nazwa || row.nazwa || ""}</td>
+            <td>${row.Ilość ? row.Ilość : (row.Ilosc ? row.Ilosc : "")}</td>
+            <td>${row.Klasa || row.klasa || ""}</td>
+        </tr>`;
+    });
+    document.getElementById('summarySection').style.display = '';
+}
+
+/* Obsługa generowania adresacji */
+document.getElementById('generateBtn').addEventListener('click', async function() {
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('error').innerText = '';
+    this.classList.add('loading');
+    const res = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId: window.fileId })
+    });
+    this.classList.remove('loading');
+    if (!res.ok) {
+        const err = await res.json();
+        document.getElementById('error').innerText = err.error || 'Błąd generacji adresacji.';
+        document.getElementById('error').style.display = '';
+        return;
+    }
+    const data = await res.json();
+    renderResult(data);
+});
+
+/* Przycisk Anuluj = reset strony */
+document.getElementById('cancelBtn').addEventListener('click', function() {
+    location.reload();
+});
+
+/* Renderowanie wyniku generacji adresacji + parametry podsieci */
+function renderResult(data) {
+    document.getElementById('summarySection').style.display = 'none';
+    document.getElementById('resultSection').style.display = '';
+    document.getElementById('networkInfo').innerHTML = `
+        <div class="info-grid">
+            <div class="info-item"><label>Nazwa podsieci:</label> <span>${data.siecNazwa}</span></div>
+            <div class="info-item"><label>Adres podsieci:</label> <span>${data.network}/${data.mask}</span></div>
+            <div class="info-item"><label>Adres bramy:</label> <span>${data.rangeStart}</span></div>
+            <div class="info-item"><label>Maska:</label> <span>${data.subnetMask}</span></div>
+            <div class="info-item"><label>Liczba użytych adresów:</label> <span>${data.used}</span></div>
+            <div class="info-item"><label>Zapas adresów:</label> <span>${data.reserve}</span></div>
+            <div class="info-item"><label>Prefiks:</label> <span>${data.prefix}</span></div>
+        </div>
+    `;
+    // Wygenerowana tabela adresacji
+    const table = document.getElementById('resultTable');
+    table.innerHTML = `<tr>
+        <th>Nazwa Obiektu</th>
+        <th>Kategoria</th>
+        <th>Nazwa</th>
+        <th>Adres ip V4</th>
+        <th>Maska</th>
+        <th>Brama domyślna</th>
+        <th>Serwer NTP</th>
+    </tr>`;
+    data.rows.forEach(row => {
+        table.innerHTML += `<tr>
+            <td>${row['Nazwa Obiektu']}</td>
+            <td>${row['Kategoria']}</td>
+            <td>${row['Nazwa']}</td>
+            <td>${row['Adres ip V4']}</td>
+            <td>${row['Maska']}</td>
+            <td>${row['Brama domyślna']}</td>
+            <td>${row['Serwer NTP']}</td>
+        </tr>`;
+    });
+    const downloadBtn = document.getElementById('downloadBtn');
+    downloadBtn.href = `/download/${encodeURIComponent(data.fileName)}`;
+    downloadBtn.style.display = '';
+}
+
+/* Przycisk Nowy plik = reset strony */
+document.getElementById('newBtn').addEventListener('click', function() {
+    location.reload();
+});
+
+/* Kliknięcie na upload box otwiera okno wyboru pliku */
+document.querySelector('.upload-box').addEventListener('click', function() {
+    document.getElementById('csvFile').click();
+});
+</script>
 </body>
 </html>
