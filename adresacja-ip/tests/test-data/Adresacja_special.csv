@@ -1,0 +1,2 @@
+Nazwa Obiektu;Kategoria;Nazwa;Adres ip V4;Maska;Brama domyślna;Serwer NTP
+Obiekt-1/2;kat_1;Device@Test;172.16.0.129;255.255.255.252;172.16.0.129;172.16.0.129

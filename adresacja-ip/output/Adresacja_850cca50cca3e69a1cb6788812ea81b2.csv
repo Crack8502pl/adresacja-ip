@@ -1,0 +1,6 @@
+Nazwa Obiektu;Kategoria;Nazwa;Adres ip V4;Maska;Brama domyślna;Serwer NTP
+TestObject;cat1;Device1;172.16.1.9;255.255.255.248;172.16.1.9;172.16.1.9
+TestObject;cat1;Device1;172.16.1.10;255.255.255.248;172.16.1.9;172.16.1.9
+TestObject;cat1;Device2;172.16.1.11;255.255.255.248;172.16.1.9;172.16.1.9
+TestObject2;cat2;WV-U1532LA;172.16.1.12;255.255.255.248;172.16.1.9;172.16.1.9
+TestObject3;cat3;DHCPDevice;DHCP;DHCP;DHCP;DHCP

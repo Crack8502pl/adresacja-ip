@@ -1,0 +1,5 @@
+Nazwa Obiektu;Kategoria;Nazwa;Ilość;Klasa
+TestObject;cat1;Device1;2;brak
+TestObject;cat1;Device2;1;lan
+TestObject2;cat2;WV-U1532LA;1;lanz
+TestObject3;cat3;DHCPDevice;1;lanz1

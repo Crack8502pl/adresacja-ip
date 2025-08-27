@@ -12,5 +12,19 @@
     "rangeStart": "172.16.0.129",
     "rangeEnd": "172.16.0.254",
     "assignedTo": "Adresacja_34f747c8c8792adfb34be3dc7cfa39f3.csv"
+  },
+  {
+    "network": "172.16.1.0",
+    "mask": 29,
+    "rangeStart": "172.16.1.1",
+    "rangeEnd": "172.16.1.6",
+    "assignedTo": "Adresacja_7bf8ecf8cfea88e74c1127b3d68c2e73.csv"
+  },
+  {
+    "network": "172.16.1.8",
+    "mask": 29,
+    "rangeStart": "172.16.1.9",
+    "rangeEnd": "172.16.1.14",
+    "assignedTo": "Adresacja_850cca50cca3e69a1cb6788812ea81b2.csv"
   }
 ]

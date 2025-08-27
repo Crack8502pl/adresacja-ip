@@ -1,0 +1,9 @@
+[
+  {
+    "network": "172.16.0.0",
+    "mask": 29,
+    "rangeStart": "172.16.0.1",
+    "rangeEnd": "172.16.0.6",
+    "assignedTo": "Adresacja_test-generation.csv"
+  }
+]
