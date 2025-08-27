@@ -1,0 +1,8 @@
+Nazwa Obiektu;Kategoria;Nazwa;Ilość;Klasa
+Budynek1;kamery;WV-U1532LA-cam1;1;lanz
+Budynek1;kamery;WV-U1532LA-cam2;1;lanz
+Budynek1;kamery;WV-S1536LTN-switch;1;lanz
+Budynek1;siec;Router;1;lan
+Budynek2;kamery;WV-U1532LA-cam3;1;lanz
+Budynek2;dhcp;Laptop;5;lanz1
+Parkingi;kamery;CameraIP;3;brak

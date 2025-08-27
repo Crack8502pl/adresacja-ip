@@ -1,0 +1,14 @@
+Nazwa Obiektu;Kategoria;Nazwa;Adres ip V4;Maska;Brama domyślna;Serwer NTP
+Parkingi;kamery;CameraIP;172.16.0.1;255.255.255.224;172.16.0.1;172.16.0.1
+Parkingi;kamery;CameraIP;172.16.0.2;255.255.255.224;172.16.0.1;172.16.0.1
+Parkingi;kamery;CameraIP;172.16.0.3;255.255.255.224;172.16.0.1;172.16.0.1
+Budynek1;siec;Router;172.16.0.4;255.255.255.224;172.16.0.1;172.16.0.1
+Budynek1;kamery;WV-U1532LA-cam1;172.16.0.5;255.255.255.224;172.16.0.1;172.16.0.1
+Budynek1;kamery;WV-U1532LA-cam2;172.16.0.6;255.255.255.224;172.16.0.1;172.16.0.1
+Budynek1;kamery;WV-S1536LTN-switch;172.16.0.7;255.255.255.224;172.16.0.1;172.16.0.1
+Budynek2;kamery;WV-U1532LA-cam3;172.16.0.8;255.255.255.224;172.16.0.1;172.16.0.1
+Budynek2;dhcp;Laptop;DHCP;DHCP;DHCP;DHCP
+Budynek2;dhcp;Laptop;DHCP;DHCP;DHCP;DHCP
+Budynek2;dhcp;Laptop;DHCP;DHCP;DHCP;DHCP
+Budynek2;dhcp;Laptop;DHCP;DHCP;DHCP;DHCP
+Budynek2;dhcp;Laptop;DHCP;DHCP;DHCP;DHCP

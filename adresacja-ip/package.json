@@ -4,7 +4,8 @@
   "description": "Automatyczny generator adresacji IP z obsługą zajętych pul",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node tests/run-all-tests.js"
   },
   "dependencies": {
     "csv-parse": "^5.6.0",
@@ -15,5 +16,8 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "devDependencies": {
+    "form-data": "^4.0.4"
+  }
 }
